@@ -209,4 +209,22 @@ public class ProviderTests
 
         Assert.False(OnDemandFetchService.ShouldFetchOnItemAdded(episode, series));
     }
+
+    [Fact]
+    public void StreamsAndLocalFilesHaveTheirOwnPriority()
+    {
+        // One Piece S9E8: TheIntroDB's intro is from another release, IntroDB's fits the streams.
+        var spans = new[]
+        {
+            new SourceSpan(SegmentSource.TheIntroDb, MediaSegmentType.Intro, S(197), S(307)),
+            new SourceSpan(SegmentSource.IntroDb, MediaSegmentType.Intro, S(31.931), S(110.772)),
+        };
+        var config = new PluginConfiguration();
+
+        var local = Assert.Single(StitchSegmentProvider.MergeAll(spans, Guid.Empty, S(1440), config));
+        var stream = Assert.Single(StitchSegmentProvider.MergeAll(spans, Guid.Empty, S(1440), config, isStream: true));
+
+        Assert.Equal(S(197), local.StartTicks);
+        Assert.Equal(S(31.931), stream.StartTicks);
+    }
 }

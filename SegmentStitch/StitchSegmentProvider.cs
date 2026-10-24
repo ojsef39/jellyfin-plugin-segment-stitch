@@ -149,6 +149,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
             item.Id,
             item.RunTimeTicks,
             config,
+            OnDemandFetchService.IsGelato(item),
             (type, merged) =>
             {
                 if (config.MergeMode == MergeMode.Smart && merged.LeftOut.Count > 0)
@@ -216,6 +217,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
     /// <param name="itemId">The item.</param>
     /// <param name="runTimeTicks">The item's runtime, if known.</param>
     /// <param name="config">The configuration.</param>
+    /// <param name="isStream">Whether the item is one of Gelato's streams, which have their own priority.</param>
     /// <param name="onMerged">Told each merged segment and the sources it came from.</param>
     /// <returns>The merged segments.</returns>
     internal static List<MediaSegmentDto> MergeAll(
@@ -223,6 +225,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         Guid itemId,
         long? runTimeTicks,
         PluginConfiguration config,
+        bool isStream = false,
         Action<MediaSegmentType, MergedSegment>? onMerged = null)
     {
         var usable = spans
@@ -230,7 +233,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
             .Select(s => WithinRunTime(s, runTimeTicks))
             .OfType<SourceSpan>()
             .ToList();
-        var priority = ParsePriority(config.SourcePriority);
+        var priority = ParsePriority(isStream ? config.StreamSourcePriority : config.SourcePriority);
         var segments = new List<MediaSegmentDto>();
         foreach (var type in Types.Where(t => IsEnabled(t, config)))
         {

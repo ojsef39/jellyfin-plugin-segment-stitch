@@ -39,7 +39,14 @@ IntroDB                    |60....90|
 result       |0....30|
 ```
 
-So coverage always counts: every episode only one source has gets that source's times. The priority only decides when sources that both have the type disagree completely. It is TheIntroDB, IntroDB, chapters by default: TheIntroDB is asked by the TVDB episode id and the file's duration, so it picks the matching episode and release, while IntroDB holds submissions in more than one numbering. Each disagreement is logged with the sources taken and left out:
+So coverage always counts: every episode only one source has gets that source's times. The priority only decides when sources that both have the type disagree completely, and there are two:
+
+| Items | Default priority | Why |
+| -- | -- | -- |
+| Local files | TheIntroDB, IntroDB, chapters | TheIntroDB picks the submissions of the file's release by its duration |
+| Gelato streams | IntroDB, TheIntroDB, chapters | IntroDB is addressed like Stremio (IMDb id, Cinemeta numbering), so its times are likelier from the debrid releases Gelato streams |
+
+Each disagreement is logged with the sources taken and left out:
 
 ```
 Sources disagree on the Intro of Pilot (<item id>): took TheIntroDb, left out IntroDb

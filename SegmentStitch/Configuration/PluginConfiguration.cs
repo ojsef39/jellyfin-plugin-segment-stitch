@@ -54,10 +54,18 @@ public class PluginConfiguration : BasePluginConfiguration
     public MergeMode MergeMode { get; set; } = MergeMode.Smart;
 
     /// <summary>
-    /// Gets or sets the sources in priority order, comma separated: the order
+    /// Gets or sets the sources in priority order for local files, comma separated: the order
     /// <see cref="MergeMode.Priority"/> picks by, and the tie-break of <see cref="MergeMode.Smart"/>.
+    /// TheIntroDB first: it picks the submissions of the file's release by its duration.
     /// </summary>
     public string SourcePriority { get; set; } = "TheIntroDb,IntroDb,Chapters";
+
+    /// <summary>
+    /// Gets or sets the sources in priority order for Gelato's streams, like <see cref="SourcePriority"/>.
+    /// IntroDB first: it is addressed like Stremio, so its times are likelier from the debrid
+    /// releases Gelato streams.
+    /// </summary>
+    public string StreamSourcePriority { get; set; } = "IntroDb,TheIntroDb,Chapters";
 
     /// <summary>
     /// Gets or sets after how many days an item's segments are fetched again, so corrections and

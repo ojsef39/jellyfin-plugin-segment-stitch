@@ -41,9 +41,14 @@
                         <div class="fieldDescription">Smart keeps the overlap (latest start to earliest end) of the most sources that overlap and leaves out a source that overlaps none of the others. When no two sources overlap, the first by priority wins.</div>
                     </div>
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="SourcePriority">Source priority</label>
+                        <label class="inputLabel inputLabelUnfocused" for="SourcePriority">Source priority, local files</label>
                         <input id="SourcePriority" type="text" is="emby-input" />
-                        <div class="fieldDescription">Comma separated, from TheIntroDb, IntroDb, Chapters. The order Priority picks by, and the tie-break of Smart.</div>
+                        <div class="fieldDescription">Comma separated, from TheIntroDb, IntroDb, Chapters. The order Priority picks by, and the tie-break of Smart. TheIntroDB first by default: it picks the times of the file's release by its duration.</div>
+                    </div>
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="StreamSourcePriority">Source priority, Gelato streams</label>
+                        <input id="StreamSourcePriority" type="text" is="emby-input" />
+                        <div class="fieldDescription">The same for Gelato's streams. IntroDB first by default: it is addressed like Stremio, so its times are likelier from the releases Gelato streams.</div>
                     </div>
 
                     <h3>Refresh</h3>
@@ -65,7 +70,7 @@
             (function () {
                 var pluginUniqueId = '926de832-7fb9-4af6-a1f3-c32b2b4cfc4a';
                 var checkboxes = ['EnableTheIntroDb', 'EnableIntroDb', 'EnableChapters', 'EnableIntro', 'EnableRecap', 'EnableCredits', 'EnablePreview', 'EnableOnDemandFetch'];
-                var fields = ['TheIntroDbApiKey', 'MergeMode', 'SourcePriority', 'RefreshAfterDays'];
+                var fields = ['TheIntroDbApiKey', 'MergeMode', 'SourcePriority', 'StreamSourcePriority', 'RefreshAfterDays'];
                 var page = document.querySelector('#SegmentStitchConfigPage');
 
                 page.addEventListener('pageshow', function () {
