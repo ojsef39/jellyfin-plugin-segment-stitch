@@ -1,0 +1,14 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": ["github>JHOFER-Cloud/renovate-presets//default"],
+    "reviewers": ["ojsef39"],
+    "packageRules": [
+        {
+            "description": "Automerge nix updates",
+            "matchManagers": ["nix"],
+            "automerge": true,
+            "automergeType": "pr",
+            "schedule": ["on friday"]
+        }
+    ]
+}
