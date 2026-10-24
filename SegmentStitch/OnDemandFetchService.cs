@@ -19,7 +19,8 @@ namespace SegmentStitch;
 /// <summary>
 /// Looks items up when they are added, after a metadata download and on playback, instead of on
 /// the next media segment scan, and writes the caches on shutdown. Gelato runs the providers for
-/// a stream row before its playback already; the playback hook refreshes local files that are due.
+/// its items before playback, so they are left out of the add and update hooks: adding a long
+/// series would otherwise look up every episode. The playback hook refreshes local files that are due.
 /// </summary>
 internal sealed class OnDemandFetchService : IHostedService, IDisposable
 {
@@ -80,10 +81,11 @@ internal sealed class OnDemandFetchService : IHostedService, IDisposable
     /// <param name="series">The episode's series, if found.</param>
     /// <returns>Whether to fetch now.</returns>
     internal static bool ShouldFetchOnItemAdded(BaseItem? item, BaseItem? series)
-        => item is Movie
+        => !IsGelato(item)
+            && (item is Movie
             || (item is Episode
                 && series is not null
-                && (series.HasProviderId(MetadataProvider.Tvdb) || series.HasProviderId(MetadataProvider.Tmdb)));
+                && (series.HasProviderId(MetadataProvider.Tvdb) || series.HasProviderId(MetadataProvider.Tmdb))));
 
     /// <summary>
     /// Whether an updated item is looked up: after a metadata download, which is when an item
@@ -92,7 +94,14 @@ internal sealed class OnDemandFetchService : IHostedService, IDisposable
     /// <param name="e">The update.</param>
     /// <returns>Whether to fetch now.</returns>
     internal static bool ShouldFetchOnItemUpdated([NotNullWhen(true)] ItemChangeEventArgs? e)
-        => e?.Item is Episode or Movie && e.UpdateReason.HasFlag(ItemUpdateType.MetadataDownload);
+        => e?.Item is Episode or Movie && !IsGelato(e.Item) && e.UpdateReason.HasFlag(ItemUpdateType.MetadataDownload);
+
+    /// <summary>
+    /// Whether an item is one of Gelato's: those carry the Stremio id they are streamed by.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <returns>Whether Gelato manages it.</returns>
+    internal static bool IsGelato(BaseItem? item) => item?.HasProviderId("Stremio") == true;
 
     private void OnItemAdded(object? sender, ItemChangeEventArgs e)
     {

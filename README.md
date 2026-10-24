@@ -47,21 +47,25 @@ Sources disagree on the Intro of Pilot (<item id>): took TheIntroDb, left out In
 
 The **Priority** merge mode skips all of this and takes the first source in the priority order that has the type.
 
-Before merging, a segment running more than 10 s past the item's runtime is dropped (another release or episode), a smaller overrun is cut to the runtime. IntroDB's post-credits scenes are kept out of the credits.
+Before merging, each segment is checked against the item's runtime:
+
+- An intro or recap must start in the first half, credits or a preview in the second. This drops an opening song filed as credits, and credits "from 0" that would cover the whole episode.
+- A segment running more than 10 s past the runtime is dropped (another release or episode), a smaller overrun is cut to the runtime.
+- IntroDB's post-credits scenes are kept out of the credits.
 
 ## Sources
 
 | Source | Asked by | Notes |
 | -- | -- | -- |
-| TheIntroDB | TVDB id (else TMDB, IMDb), season/episode in the series' display order, TVDB episode id, duration | Series in a TMDB episode-group order are skipped |
-| IntroDB | Series or movie IMDb id, season/episode in IMDb's numbering | The numbers come from [Cinemeta](https://v3-cinemeta.strem.io) by the episode's TVDB id, so any display order works. Without a TVDB id or Cinemeta match the episode's own numbers are sent, for the default order only |
+| TheIntroDB | TVDB id (else TMDB, IMDb), season/episode in the series' display order, TVDB episode id, duration | The duration picks the matching release's submissions. Series in a TMDB episode-group order are skipped |
+| IntroDB | Series or movie IMDb id, season/episode in IMDb's numbering as Cinemeta and Stremio give it | A Gelato episode's Stremio id has these numbers. A local episode is found in [Cinemeta](https://v3-cinemeta.strem.io) by its TVDB id, so any display order works. Otherwise the episode's own numbers are sent, for the default order only. IntroDB takes no duration, so its times may come from another release |
 | Chapters | The item's named chapters (whole-title match, several languages) | |
 
 ## Refresh
 
 An item's segments are fetched again after *Refresh after days* (30, spread by a quarter either way), so corrections in either database arrive. A source with nothing for an item is asked again after 14 days. When a source fails, the stored segments are kept and the item is asked again on the next run.
 
-Items are looked up when added (episodes once their series has a TVDB or TMDB id), after a metadata download and on playback, the rest on the media segment scan. For Gelato's stream rows, Gelato runs the providers before playback starts, so the first play already has its skip buttons.
+Local items are looked up when added (episodes once their series has a TVDB or TMDB id), after a metadata download and on playback, the rest on the media segment scan. For Gelato's stream rows, Gelato runs the providers before playback starts, so the first play already has its skip buttons.
 
 ## Setup
 

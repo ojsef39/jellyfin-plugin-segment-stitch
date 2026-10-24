@@ -119,6 +119,7 @@ public sealed class LookupCache
                 var liveEntries = _entries
                     .Where(pair => pair.Value > now)
                     .ToDictionary(pair => pair.Key, pair => pair.Value);
+                Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
                 var tempPath = _filePath + ".tmp";
                 var json = JsonSerializer.Serialize(liveEntries);
                 File.WriteAllText(tempPath, json);

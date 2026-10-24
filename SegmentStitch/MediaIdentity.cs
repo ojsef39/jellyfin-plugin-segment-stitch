@@ -19,6 +19,7 @@ namespace SegmentStitch;
 /// <param name="Mapping">TVDB name of the series' display order; null for the default order.</param>
 /// <param name="UnsupportedOrder">True when the display order has no TVDB name.</param>
 /// <param name="TvdbEpisodeId">TVDB id of the episode.</param>
+/// <param name="StremioNumbers">Season and episode of a Gelato episode's Stremio id, in Cinemeta's (IMDb) numbering.</param>
 internal sealed record MediaIdentity(
     bool IsMovie,
     int? TvdbId,
@@ -29,7 +30,8 @@ internal sealed record MediaIdentity(
     int? Episode,
     string? Mapping,
     bool UnsupportedOrder,
-    long? TvdbEpisodeId)
+    long? TvdbEpisodeId,
+    (int Season, int Episode)? StremioNumbers = null)
 {
     /// <summary>
     /// Reads an item's identity.
@@ -51,7 +53,8 @@ internal sealed record MediaIdentity(
                 episode.IndexNumber,
                 mapping,
                 unsupported,
-                GetLong(episode, "Tvdb"));
+                GetLong(episode, "Tvdb"),
+                ParseStremioNumbers(GetString(episode, "Stremio")));
         }
 
         var imdbId = GetString(item, "Imdb");
@@ -128,6 +131,22 @@ internal sealed record MediaIdentity(
                 unsupported = true;
                 return null;
         }
+    }
+
+    /// <summary>
+    /// The season and episode of a Stremio episode id ("tt0388629:9:3").
+    /// </summary>
+    /// <param name="stremioId">The id.</param>
+    /// <returns>The numbers, or null for another id.</returns>
+    internal static (int Season, int Episode)? ParseStremioNumbers(string? stremioId)
+    {
+        var parts = stremioId?.Split(':');
+        return parts is { Length: 3 }
+            && parts[0].StartsWith("tt", StringComparison.Ordinal)
+            && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var season)
+            && int.TryParse(parts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var episode)
+            ? (season, episode)
+            : null;
     }
 
     private static string? GetString(BaseItem? item, string provider)

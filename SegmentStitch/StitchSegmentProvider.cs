@@ -225,7 +225,11 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         PluginConfiguration config,
         Action<MediaSegmentType, MergedSegment>? onMerged = null)
     {
-        var usable = spans.Select(s => WithinRunTime(s, runTimeTicks)).OfType<SourceSpan>().ToList();
+        var usable = spans
+            .Where(s => IsPlausible(s, runTimeTicks))
+            .Select(s => WithinRunTime(s, runTimeTicks))
+            .OfType<SourceSpan>()
+            .ToList();
         var priority = ParsePriority(config.SourcePriority);
         var segments = new List<MediaSegmentDto>();
         foreach (var type in Types.Where(t => IsEnabled(t, config)))
@@ -244,6 +248,25 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         }
 
         return segments;
+    }
+
+    /// <summary>
+    /// Whether a segment sits where its type can be: an intro or recap starts in the first half
+    /// of the runtime, credits or a preview in the second. Catches an opening song filed as
+    /// credits, and credits "from 0" that would cover the whole item.
+    /// </summary>
+    /// <param name="span">The segment.</param>
+    /// <param name="runTimeTicks">The item's runtime, if known.</param>
+    /// <returns>Whether to keep it.</returns>
+    internal static bool IsPlausible(SourceSpan span, long? runTimeTicks)
+    {
+        if (runTimeTicks is not > 0)
+        {
+            return true;
+        }
+
+        var inFirstHalf = span.StartTicks < runTimeTicks.Value / 2;
+        return span.Type is MediaSegmentType.Intro or MediaSegmentType.Recap ? inFirstHalf : !inFirstHalf;
     }
 
     /// <summary>
@@ -354,15 +377,21 @@ public class StitchSegmentProvider : IMediaSegmentProvider
     }
 
     /// <summary>
-    /// IntroDB's season and episode for an episode. IntroDB reads them in IMDb's numbering:
-    /// found by the episode's TVDB id in Cinemeta, else the episode's own numbers, which only
-    /// the default order may share with IMDb.
+    /// IntroDB's season and episode for an episode. IntroDB reads them in IMDb's numbering, as
+    /// Cinemeta and Stremio give it: a Gelato episode's Stremio id has them; a local episode is
+    /// found in Cinemeta by its TVDB id; else the episode's own numbers, which only the default
+    /// order may share with IMDb.
     /// </summary>
     /// <param name="id">The episode.</param>
     /// <param name="imdbByTvdb">The series' IMDb season and episode by TVDB episode id.</param>
     /// <returns>The numbers, or null when IntroDB cannot be asked.</returns>
     internal static (int Season, int Episode)? IntroDbNumbers(MediaIdentity id, IReadOnlyDictionary<long, (int Season, int Episode)> imdbByTvdb)
     {
+        if (id.StremioNumbers is { } stremio)
+        {
+            return stremio.Season > 0 && stremio.Episode > 0 ? stremio : null;
+        }
+
         if (id.TvdbEpisodeId is { } tvdbEpisodeId && imdbByTvdb.TryGetValue(tvdbEpisodeId, out var imdb))
         {
             // IntroDB takes no season 0.
@@ -388,8 +417,8 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         int? episode = null;
         if (!id.IsMovie)
         {
-            // Only an episode with a TVDB id can be found in Cinemeta.
-            var imdbByTvdb = id.TvdbEpisodeId is null
+            // Only an episode with a TVDB id and no Stremio id needs Cinemeta.
+            var imdbByTvdb = id.TvdbEpisodeId is null || id.StremioNumbers is not null
                 ? []
                 : await new CinemetaClient(_httpClientFactory.CreateClient(), _logger)
                     .GetEpisodesAsync(id.SeriesOrMovieImdbId)

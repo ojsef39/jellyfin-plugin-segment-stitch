@@ -154,4 +154,26 @@ public class SourceTests
     [Fact]
     public void CinemetaWithoutEpisodesGivesNone()
         => Assert.Empty(CinemetaClient.Parse("{}"));
+
+    [Fact]
+    public void TheCacheIsSavedIntoAFolderThatDoesNotExistYet()
+    {
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "segment-stitch-" + Guid.NewGuid().ToString("N"));
+        var file = System.IO.Path.Combine(dir, "recent-fetches.json");
+        try
+        {
+            var cache = new LookupCache(file);
+            cache.Remember("item:1", TimeSpan.FromDays(1));
+            cache.Save();
+
+            Assert.True(new LookupCache(file).TryGetHit("item:1"));
+        }
+        finally
+        {
+            if (System.IO.Directory.Exists(dir))
+            {
+                System.IO.Directory.Delete(dir, true);
+            }
+        }
+    }
 }

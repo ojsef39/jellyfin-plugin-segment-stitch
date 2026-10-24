@@ -6,6 +6,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using Microsoft.Extensions.Logging;
 using SegmentStitch.Configuration;
 
 namespace SegmentStitch;
@@ -20,13 +21,14 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// </summary>
     /// <param name="applicationPaths">Instance of the <see cref="IApplicationPaths"/> interface.</param>
     /// <param name="xmlSerializer">Instance of the <see cref="IXmlSerializer"/> interface.</param>
-    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
+    /// <param name="logger">Logger for the caches.</param>
+    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILogger<Plugin> logger)
         : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
-        RecentFetches = new LookupCache(Path.Combine(DataFolderPath, "recent-fetches.json"));
-        TheIntroDbMisses = new LookupCache(Path.Combine(DataFolderPath, "theintrodb-misses.json"));
-        IntroDbMisses = new LookupCache(Path.Combine(DataFolderPath, "introdb-misses.json"));
+        RecentFetches = new LookupCache(Path.Combine(DataFolderPath, "recent-fetches.json"), logger);
+        TheIntroDbMisses = new LookupCache(Path.Combine(DataFolderPath, "theintrodb-misses.json"), logger);
+        IntroDbMisses = new LookupCache(Path.Combine(DataFolderPath, "introdb-misses.json"), logger);
     }
 
     /// <inheritdoc />

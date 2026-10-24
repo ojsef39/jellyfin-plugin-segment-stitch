@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Jellyfin.Database.Implementations.Enums;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -130,5 +131,82 @@ public class ProviderTests
         Assert.Equal((1, 9), StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, 12345), OnePiece));
         Assert.Null(StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, null, "dvd"), OnePiece));
         Assert.Null(StitchSegmentProvider.IntroDbNumbers(Episode(0, 1, null), OnePiece));
+    }
+
+    [Theory]
+    [InlineData(MediaSegmentType.Outro, 0, true)] // credits "from 0"
+    [InlineData(MediaSegmentType.Outro, 46.881, true)] // the opening song filed as credits
+    [InlineData(MediaSegmentType.Outro, 1382, false)]
+    [InlineData(MediaSegmentType.Preview, 1459, false)]
+    [InlineData(MediaSegmentType.Intro, 258, false)]
+    [InlineData(MediaSegmentType.Intro, 900, true)]
+    [InlineData(MediaSegmentType.Recap, 0, false)]
+    public void SegmentsOutsideTheirHalfAreDropped(MediaSegmentType type, double start, bool dropped)
+        => Assert.Equal(!dropped, StitchSegmentProvider.IsPlausible(new SourceSpan(SegmentSource.TheIntroDb, type, S(start), S(start + 30)), S(1440)));
+
+    [Fact]
+    public void WithoutARunTimeEverySegmentIsPlausible()
+        => Assert.True(StitchSegmentProvider.IsPlausible(new SourceSpan(SegmentSource.TheIntroDb, MediaSegmentType.Outro, 0, S(30)), null));
+
+    [Fact]
+    public void OnePieceEpisodeOneGetsIntroDbsCredits()
+    {
+        // TheIntroDB files the opening song as credits; IntroDB has the real ones.
+        var spans = new[]
+        {
+            new SourceSpan(SegmentSource.TheIntroDb, MediaSegmentType.Outro, S(46.881), S(124.5)),
+            new SourceSpan(SegmentSource.TheIntroDb, MediaSegmentType.Preview, S(1459), S(1500)),
+            new SourceSpan(SegmentSource.IntroDb, MediaSegmentType.Intro, S(28.783), S(118.783)),
+            new SourceSpan(SegmentSource.IntroDb, MediaSegmentType.Outro, S(1382), S(1422)),
+        };
+
+        var segments = StitchSegmentProvider.MergeAll(spans, Guid.Empty, S(1500), new PluginConfiguration());
+
+        Assert.Equal(
+            [(MediaSegmentType.Intro, S(28.783), S(118.783)), (MediaSegmentType.Outro, S(1382), S(1422)), (MediaSegmentType.Preview, S(1459), S(1500))],
+            segments.Select(x => (x.Type, x.StartTicks, x.EndTicks)));
+    }
+
+    [Fact]
+    public void CreditsFromZeroAreDropped()
+    {
+        // One Piece S9E10: TheIntroDB credits start 0 with an open end, which ran to the runtime.
+        var spans = new[]
+        {
+            new SourceSpan(SegmentSource.TheIntroDb, MediaSegmentType.Outro, 0, S(1440)),
+            new SourceSpan(SegmentSource.TheIntroDb, MediaSegmentType.Intro, S(258), S(368)),
+        };
+
+        var intro = Assert.Single(StitchSegmentProvider.MergeAll(spans, Guid.Empty, S(1440), new PluginConfiguration()));
+
+        Assert.Equal(MediaSegmentType.Intro, intro.Type);
+    }
+
+    [Fact]
+    public void AGelatoEpisodeAsksIntroDbByItsStremioNumbers()
+        => Assert.Equal((9, 3), StitchSegmentProvider.IntroDbNumbers(Episode(9, 3, 361897) with { StremioNumbers = (9, 3) }, OnePiece));
+
+    [Theory]
+    [InlineData("tt0388629:9:3", 9, 3)]
+    [InlineData("tt0388629:0:12", 0, 12)]
+    public void StremioIdsGiveTheirNumbers(string id, int season, int episode)
+        => Assert.Equal((season, episode), MediaIdentity.ParseStremioNumbers(id));
+
+    [Theory]
+    [InlineData("tt0388629")]
+    [InlineData("kitsu:1:2")]
+    [InlineData(null)]
+    public void OtherIdsGiveNoNumbers(string? id)
+        => Assert.Null(MediaIdentity.ParseStremioNumbers(id));
+
+    [Fact]
+    public void GelatoEpisodesAreNotLookedUpWhenAdded()
+    {
+        var series = new Series();
+        series.SetProviderId("Tvdb", "81797");
+        var episode = new Episode();
+        episode.SetProviderId("Stremio", "tt0388629:9:3");
+
+        Assert.False(OnDemandFetchService.ShouldFetchOnItemAdded(episode, series));
     }
 }
