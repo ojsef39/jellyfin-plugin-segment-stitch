@@ -6,10 +6,48 @@ Each of those sources usually covers an episode completely or not at all, and th
 
 ## Merging
 
-- **Smart** (default): where several sources have a type, the segment runs from the latest start to the earliest end, the time they agree on. A source that overlaps none of the others is left out (a wrong "Intro" chapter, say). When no two sources overlap, the first by priority wins: TheIntroDB by default, since it is asked by TVDB episode id and duration, while IntroDB holds submissions in more than one numbering. Each disagreement is logged with the sources taken and left out.
-- **Priority**: the first source in the priority order that has the type.
+The merge runs for each segment type (intro, recap, credits, preview) on its own, and every source takes part with at most one segment of that type.
 
-A segment running more than 10 s past the item's runtime is dropped (another release or episode), a smaller overrun is cut to the runtime. IntroDB's post-credits scenes are kept out of the credits.
+| Situation | Result | Decided by |
+| -- | -- | -- |
+| Only one source has the type | That source's segment, as it is | Nothing to decide |
+| Several have it and they overlap | From the latest start to the earliest end: the time they agree on | The overlap. A source that overlaps none of the others is left out, the rest are merged |
+| Several have it and no two overlap | One source's segment, whole | The source priority |
+
+**Overlap:** the time all sources agree on.
+
+```
+TheIntroDB   |----60........88----|
+IntroDB         |--62..............95--|
+result          |--62.....88--|
+```
+
+**One source off:** a wrong "Intro" chapter is left out, the two databases are merged.
+
+```
+Chapters     |15..46|
+TheIntroDB                |60........88|
+IntroDB                     |62..........90|
+result                      |62......88|
+```
+
+**No overlap:** "latest start to earliest end" would be 60 to 30, no segment at all, so the first source by priority is taken whole.
+
+```
+TheIntroDB   |0....30|                          <- taken (priority)
+IntroDB                    |60....90|
+result       |0....30|
+```
+
+So coverage always counts: every episode only one source has gets that source's times. The priority only decides when sources that both have the type disagree completely. It is TheIntroDB, IntroDB, chapters by default: TheIntroDB is asked by the TVDB episode id and the file's duration, so it picks the matching episode and release, while IntroDB holds submissions in more than one numbering. Each disagreement is logged with the sources taken and left out:
+
+```
+Sources disagree on the Intro of Pilot (<item id>): took TheIntroDb, left out IntroDb
+```
+
+The **Priority** merge mode skips all of this and takes the first source in the priority order that has the type.
+
+Before merging, a segment running more than 10 s past the item's runtime is dropped (another release or episode), a smaller overrun is cut to the runtime. IntroDB's post-credits scenes are kept out of the credits.
 
 ## Sources
 
