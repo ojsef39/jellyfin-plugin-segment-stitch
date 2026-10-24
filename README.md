@@ -80,7 +80,7 @@ Disable the TheIntroDB, Chapter Segments and Gelato IntroDB segment providers in
 
 ## Install
 
-Add the repository `https://raw.githubusercontent.com/ojsef39/jellyfin-plugin-segment-stitch/main/manifest.json` under Dashboard, Plugins, Repositories.
+Add the repository `https://github.com/ojsef39/jellyfin-plugin-segment-stitch/releases/latest/download/manifest.json` under Dashboard, Plugins, Repositories.
 
 ## Development
 
@@ -94,6 +94,6 @@ d-rollback   # remove the dev builds, a catalog install takes over again
 
 `d-deploy` and `d-rollback` act on `SEGSTITCH_KUBE_CONTEXT` (default `admin@talos-dev`) and `SEGSTITCH_KUBE_NAMESPACE` (default `jelly-stack`). A dev build is versioned as the last release plus the commits since it (`v0.2.0` + 3 commits = `0.2.0.3`).
 
-Releases are cut by semantic-release from the Conventional Commits on `main`: it tags, builds the zip with jprm, attaches it to the GitHub release and adds it to `manifest.json`.
+Releases are cut by semantic-release from the Conventional Commits on `main`: it tags, builds the zip with jprm and attaches it to the GitHub release together with the plugin repository manifest (the latest release's plus the new version). CI commits nothing; `manifest.json` in the repository only holds the versions from before manifests were release assets.
 
 Parts are taken from [TheIntroDB's Jellyfin plugin](https://github.com/TheIntroDB/jellyfin-plugin) and [Gelato](https://github.com/lostb1t/Gelato). GPL-3.0.
