@@ -130,4 +130,28 @@ public class SourceTests
     [Fact]
     public void TheIntroDbTimestampZeroZeroIsNoSegment()
         => Assert.False(new TheIntroDbSegmentTimestamp { StartMs = 0, EndMs = 0 }.HasValidRange(true));
+
+    [Fact]
+    public void CinemetaGivesImdbNumbersByTvdbEpisodeId()
+    {
+        // Shape of a real answer (One Piece): IMDb's season 2 starts at episode 9.
+        const string Json = """
+            {"meta":{"id":"tt0388629","videos":[
+              {"id":"tt0388629:1:8","season":1,"episode":8,"number":8,"tvdb_id":361895},
+              {"id":"tt0388629:2:1","season":2,"episode":1,"number":1,"tvdb_id":361897},
+              {"id":"tt0388629:0:1","season":0,"episode":1,"number":1,"tvdb_id":999},
+              {"id":"tt0388629:2:2","season":2,"episode":2,"number":2}
+            ]}}
+            """;
+
+        var episodes = CinemetaClient.Parse(Json);
+
+        Assert.Equal(3, episodes.Count);
+        Assert.Equal((2, 1), episodes[361897]);
+        Assert.Equal((0, 1), episodes[999]);
+    }
+
+    [Fact]
+    public void CinemetaWithoutEpisodesGivesNone()
+        => Assert.Empty(CinemetaClient.Parse("{}"));
 }

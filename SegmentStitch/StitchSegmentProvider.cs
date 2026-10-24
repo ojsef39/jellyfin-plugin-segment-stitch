@@ -144,7 +144,24 @@ public class StitchSegmentProvider : IMediaSegmentProvider
             plugin.RecentFetches.Remember(refreshKey, RefreshTtl(config.RefreshAfterDays, Random.Shared.NextDouble()));
         }
 
-        var segments = MergeAll(lookups.SelectMany(l => l.Spans), item.Id, item.RunTimeTicks, config);
+        var segments = MergeAll(
+            lookups.SelectMany(l => l.Spans),
+            item.Id,
+            item.RunTimeTicks,
+            config,
+            (type, merged) =>
+            {
+                if (config.MergeMode == MergeMode.Smart && merged.LeftOut.Count > 0)
+                {
+                    _logger.LogInformation(
+                        "Sources disagree on the {Type} of {Name} ({ItemId}): took {From}, left out {LeftOut}",
+                        type,
+                        item.Name,
+                        item.Id,
+                        string.Join('+', merged.From),
+                        string.Join('+', merged.LeftOut));
+                }
+            });
         _logger.LogInformation(
             "{Count} segments for {Name} (TheIntroDB {TheIntroDb}, IntroDB {IntroDb}, chapters {Chapters})",
             segments.Count,
@@ -199,8 +216,14 @@ public class StitchSegmentProvider : IMediaSegmentProvider
     /// <param name="itemId">The item.</param>
     /// <param name="runTimeTicks">The item's runtime, if known.</param>
     /// <param name="config">The configuration.</param>
+    /// <param name="onMerged">Told each merged segment and the sources it came from.</param>
     /// <returns>The merged segments.</returns>
-    internal static List<MediaSegmentDto> MergeAll(IEnumerable<SourceSpan> spans, Guid itemId, long? runTimeTicks, PluginConfiguration config)
+    internal static List<MediaSegmentDto> MergeAll(
+        IEnumerable<SourceSpan> spans,
+        Guid itemId,
+        long? runTimeTicks,
+        PluginConfiguration config,
+        Action<MediaSegmentType, MergedSegment>? onMerged = null)
     {
         var usable = spans.Select(s => WithinRunTime(s, runTimeTicks)).OfType<SourceSpan>().ToList();
         var priority = ParsePriority(config.SourcePriority);
@@ -209,6 +232,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         {
             if (SegmentMerger.Merge(usable, type, config.MergeMode, priority) is { } merged)
             {
+                onMerged?.Invoke(type, merged);
                 segments.Add(new MediaSegmentDto
                 {
                     ItemId = itemId,
@@ -329,18 +353,66 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         return SourceLookup.Found(spans);
     }
 
+    /// <summary>
+    /// IntroDB's season and episode for an episode. IntroDB reads them in IMDb's numbering:
+    /// found by the episode's TVDB id in Cinemeta, else the episode's own numbers, which only
+    /// the default order may share with IMDb.
+    /// </summary>
+    /// <param name="id">The episode.</param>
+    /// <param name="imdbByTvdb">The series' IMDb season and episode by TVDB episode id.</param>
+    /// <returns>The numbers, or null when IntroDB cannot be asked.</returns>
+    internal static (int Season, int Episode)? IntroDbNumbers(MediaIdentity id, IReadOnlyDictionary<long, (int Season, int Episode)> imdbByTvdb)
+    {
+        if (id.TvdbEpisodeId is { } tvdbEpisodeId && imdbByTvdb.TryGetValue(tvdbEpisodeId, out var imdb))
+        {
+            // IntroDB takes no season 0.
+            return imdb.Season > 0 ? imdb : null;
+        }
+
+        if (id.Mapping is not null || id.UnsupportedOrder || id.Season is not > 0 || id.Episode is not > 0)
+        {
+            return null;
+        }
+
+        return (id.Season.Value, id.Episode.Value);
+    }
+
     private async Task<SourceLookup> LookupIntroDbAsync(Plugin plugin, MediaIdentity id, CancellationToken cancellationToken)
     {
-        // IntroDB reads the numbers in IMDb's order, which only the default order may match.
-        if (string.IsNullOrWhiteSpace(id.SeriesOrMovieImdbId)
-            || (!id.IsMovie && (id.Mapping is not null || id.UnsupportedOrder || id.Season is not > 0 || id.Episode is not > 0)))
+        if (string.IsNullOrWhiteSpace(id.SeriesOrMovieImdbId))
         {
             return SourceLookup.None();
         }
 
+        int? season = null;
+        int? episode = null;
+        if (!id.IsMovie)
+        {
+            // Only an episode with a TVDB id can be found in Cinemeta.
+            var imdbByTvdb = id.TvdbEpisodeId is null
+                ? []
+                : await new CinemetaClient(_httpClientFactory.CreateClient(), _logger)
+                    .GetEpisodesAsync(id.SeriesOrMovieImdbId)
+                    .WaitAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+            // Without Cinemeta the numbers could differ from the next run's: ask again later.
+            if (imdbByTvdb is null)
+            {
+                return SourceLookup.Failed();
+            }
+
+            if (IntroDbNumbers(id, imdbByTvdb) is not { } numbers)
+            {
+                return SourceLookup.None();
+            }
+
+            (season, episode) = numbers;
+        }
+
         var missKey = id.IsMovie
             ? $"movie:{id.SeriesOrMovieImdbId}"
-            : string.Create(CultureInfo.InvariantCulture, $"episode:{id.SeriesOrMovieImdbId}:{id.Season}:{id.Episode}");
+            : string.Create(CultureInfo.InvariantCulture, $"episode:{id.SeriesOrMovieImdbId}:{season}:{episode}");
         if (plugin.IntroDbMisses.TryGetHit(missKey))
         {
             return SourceLookup.None();
@@ -348,7 +420,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
 
         var client = new IntroDbClient(_httpClientFactory.CreateClient(), _logger);
         var lookup = await client
-            .GetSegmentsAsync(id.SeriesOrMovieImdbId, id.IsMovie ? null : id.Season, id.IsMovie ? null : id.Episode, cancellationToken)
+            .GetSegmentsAsync(id.SeriesOrMovieImdbId, season, episode, cancellationToken)
             .ConfigureAwait(false);
         if (lookup.Status == LookupStatus.None)
         {

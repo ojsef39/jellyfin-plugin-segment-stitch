@@ -19,8 +19,8 @@ public static class SegmentMerger
     /// <param name="type">The segment type to merge.</param>
     /// <param name="mode">How to merge.</param>
     /// <param name="priority">The sources in priority order; sources not listed are left out.</param>
-    /// <returns>The merged start and end in ticks, or null for no segment.</returns>
-    public static (long StartTicks, long EndTicks)? Merge(
+    /// <returns>The merged segment, or null for none.</returns>
+    public static MergedSegment? Merge(
         IEnumerable<SourceSpan> spans,
         MediaSegmentType type,
         MergeMode mode,
@@ -39,7 +39,7 @@ public static class SegmentMerger
 
         if (mode == MergeMode.Priority || ordered.Count == 1)
         {
-            return (ordered[0].StartTicks, ordered[0].EndTicks);
+            return Taken([ordered[0]], ordered);
         }
 
         // Largest group of sources that share a time first; among groups of one size the one
@@ -52,14 +52,21 @@ public static class SegmentMerger
                 var end = group.Min(s => s.EndTicks);
                 if (end > start)
                 {
-                    return (start, end);
+                    return Taken(group, ordered) with { StartTicks = start, EndTicks = end };
                 }
             }
         }
 
         // No two sources agree: the first by priority.
-        return (ordered[0].StartTicks, ordered[0].EndTicks);
+        return Taken([ordered[0]], ordered);
     }
+
+    private static MergedSegment Taken(List<SourceSpan> used, List<SourceSpan> candidates)
+        => new(
+            used[0].StartTicks,
+            used[0].EndTicks,
+            used.Select(s => s.Source).ToList(),
+            candidates.Except(used).Select(s => s.Source).ToList());
 
     /// <summary>
     /// The groups of <paramref name="size"/> items, in lexicographic order of their positions.

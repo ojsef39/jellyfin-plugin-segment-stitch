@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Jellyfin.Database.Implementations.Enums;
 using SegmentStitch.Merging;
 using Xunit;
@@ -115,4 +116,21 @@ public class SegmentMergerTests
     [Fact]
     public void EmptySpansAreIgnored()
         => Assert.Equal((60, 88), Merge(MergeMode.Smart, Span(SegmentSource.TheIntroDb, 60, 88), Span(SegmentSource.IntroDb, 70, 70)));
+
+    [Fact]
+    public void TheMergeNamesTheSourcesItUsedAndLeftOut()
+    {
+        var spans = new[] { Span(SegmentSource.TheIntroDb, 60, 88), Span(SegmentSource.IntroDb, 62, 90), Span(SegmentSource.Chapters, 15, 46) };
+
+        var outlier = SegmentMerger.Merge(spans, MediaSegmentType.Intro, MergeMode.Smart, DefaultPriority)!;
+        Assert.Equal([SegmentSource.TheIntroDb, SegmentSource.IntroDb], outlier.From);
+        Assert.Equal([SegmentSource.Chapters], outlier.LeftOut);
+
+        var disagreement = SegmentMerger.Merge(spans[..1].Append(Span(SegmentSource.IntroDb, 100, 130)), MediaSegmentType.Intro, MergeMode.Smart, DefaultPriority)!;
+        Assert.Equal([SegmentSource.TheIntroDb], disagreement.From);
+        Assert.Equal([SegmentSource.IntroDb], disagreement.LeftOut);
+
+        var agreement = SegmentMerger.Merge(spans[..2], MediaSegmentType.Intro, MergeMode.Smart, DefaultPriority)!;
+        Assert.Empty(agreement.LeftOut);
+    }
 }

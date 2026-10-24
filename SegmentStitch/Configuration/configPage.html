@@ -22,7 +22,7 @@
                         <div class="fieldDescription">Weighs your own submissions higher and raises the rate limits.</div>
                     </div>
                     <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="EnableIntroDb" /><span>IntroDB</span></label>
-                    <div class="fieldDescription">IntroDB only takes IMDb ids and numbers, so it is skipped for series with a non-default display order.</div>
+                    <div class="fieldDescription">IntroDB only takes IMDb ids and numbers. They are looked up in Cinemeta by the episode's TVDB id; without one, IntroDB is only asked for series in the default display order.</div>
                     <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="EnableChapters" /><span>Chapters</span></label>
 
                     <h3>Segment types</h3>

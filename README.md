@@ -6,7 +6,7 @@ Each of those sources usually covers an episode completely or not at all, and th
 
 ## Merging
 
-- **Smart** (default): where several sources have a type, the segment runs from the latest start to the earliest end, the time they agree on. A source that overlaps none of the others is left out (a wrong "Intro" chapter, say). When no two sources overlap, the first by priority wins: TheIntroDB by default, since it is asked by TVDB episode id and duration, while IntroDB holds submissions in more than one numbering.
+- **Smart** (default): where several sources have a type, the segment runs from the latest start to the earliest end, the time they agree on. A source that overlaps none of the others is left out (a wrong "Intro" chapter, say). When no two sources overlap, the first by priority wins: TheIntroDB by default, since it is asked by TVDB episode id and duration, while IntroDB holds submissions in more than one numbering. Each disagreement is logged with the sources taken and left out.
 - **Priority**: the first source in the priority order that has the type.
 
 A segment running more than 10 s past the item's runtime is dropped (another release or episode), a smaller overrun is cut to the runtime. IntroDB's post-credits scenes are kept out of the credits.
@@ -16,7 +16,7 @@ A segment running more than 10 s past the item's runtime is dropped (another rel
 | Source | Asked by | Notes |
 | -- | -- | -- |
 | TheIntroDB | TVDB id (else TMDB, IMDb), season/episode in the series' display order, TVDB episode id, duration | Series in a TMDB episode-group order are skipped |
-| IntroDB | Series or movie IMDb id, season/episode | IMDb numbering only, so skipped for any non-default display order |
+| IntroDB | Series or movie IMDb id, season/episode in IMDb's numbering | The numbers come from [Cinemeta](https://v3-cinemeta.strem.io) by the episode's TVDB id, so any display order works. Without a TVDB id or Cinemeta match the episode's own numbers are sent, for the default order only |
 | Chapters | The item's named chapters (whole-title match, several languages) | |
 
 ## Refresh

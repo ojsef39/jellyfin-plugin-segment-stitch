@@ -105,4 +105,30 @@ public class ProviderTests
         series.SetProviderId("Tvdb", "81189");
         Assert.True(OnDemandFetchService.ShouldFetchOnItemAdded(new Episode(), series));
     }
+
+    private static MediaIdentity Episode(int season, int episode, long? tvdbEpisodeId, string? mapping = null)
+        => new(false, 81797, null, null, "tt0388629", season, episode, mapping, false, tvdbEpisodeId);
+
+    private static readonly Dictionary<long, (int Season, int Episode)> OnePiece = new() { [361897] = (2, 1), [999] = (0, 1) };
+
+    [Fact]
+    public void IntroDbIsAskedInImdbNumbersFoundByTvdbId()
+        => Assert.Equal((2, 1), StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, 361897), OnePiece));
+
+    [Fact]
+    public void IntroDbIsAskedInImdbNumbersForAnyDisplayOrder()
+        => Assert.Equal((2, 1), StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, 361897, "absolute"), OnePiece));
+
+    [Fact]
+    public void IntroDbIsNotAskedForAnImdbSpecial()
+        => Assert.Null(StitchSegmentProvider.IntroDbNumbers(Episode(1, 3, 999), OnePiece));
+
+    [Fact]
+    public void WithoutAMatchIntroDbIsAskedInTheEpisodesOwnDefaultOrderNumbers()
+    {
+        Assert.Equal((1, 9), StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, null), OnePiece));
+        Assert.Equal((1, 9), StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, 12345), OnePiece));
+        Assert.Null(StitchSegmentProvider.IntroDbNumbers(Episode(1, 9, null, "dvd"), OnePiece));
+        Assert.Null(StitchSegmentProvider.IntroDbNumbers(Episode(0, 1, null), OnePiece));
+    }
 }
