@@ -7,7 +7,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": ".github/release.sh ${nextRelease.version}"
+        "prepareCmd": ".github/release.sh ${nextRelease.version} <<'RELEASE_NOTES'\n${nextRelease.notes}\nRELEASE_NOTES"
       }
     ],
     [
