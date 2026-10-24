@@ -1,7 +1,7 @@
 ---
 name: "Segment Stitch"
 guid: "926de832-7fb9-4af6-a1f3-c32b2b4cfc4a"
-version: "0.1.0.0"
+version: "1.0.0.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Jellyfin media segments from TheIntroDB, IntroDB and chapters, merged per segment type."
@@ -13,4 +13,4 @@ category: "General"
 owner: "ojsef39"
 artifacts:
 - "SegmentStitch.dll"
-changelog: ""
+changelog: "https://github.com/ojsef39/jellyfin-plugin-segment-stitch/releases/tag/v1.0.0"
