@@ -227,4 +227,16 @@ public class ProviderTests
         Assert.Equal(S(197), local.StartTicks);
         Assert.Equal(S(31.931), stream.StartTicks);
     }
+
+    [Fact]
+    public void ASettingsChangeMakesEveryItemDue()
+    {
+        var before = StitchSegmentProvider.SettingsFingerprint(new PluginConfiguration());
+
+        Assert.Equal(before, StitchSegmentProvider.SettingsFingerprint(new PluginConfiguration { SourcePriority = " theintrodb, IntroDb " }));
+        Assert.Equal(before, StitchSegmentProvider.SettingsFingerprint(new PluginConfiguration { RefreshAfterDays = 7 }));
+        Assert.NotEqual(before, StitchSegmentProvider.SettingsFingerprint(new PluginConfiguration { StreamSourcePriority = "TheIntroDb" }));
+        Assert.NotEqual(before, StitchSegmentProvider.SettingsFingerprint(new PluginConfiguration { EnablePreview = false }));
+        Assert.NotEqual(before, StitchSegmentProvider.SettingsFingerprint(new PluginConfiguration { MergeMode = MergeMode.Priority }));
+    }
 }

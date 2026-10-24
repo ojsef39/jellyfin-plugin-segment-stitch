@@ -70,7 +70,7 @@ Before merging, each segment is checked against the item's runtime:
 
 ## Refresh
 
-An item's segments are fetched again after *Refresh after days* (30, spread by a quarter either way), so corrections in either database arrive. A source with nothing for an item is asked again after 14 days. When a source fails, the stored segments are kept and the item is asked again on the next run.
+An item's segments are fetched again after *Refresh after days* (30, spread by a quarter either way), so corrections in either database arrive. After an update of the plugin or a change of its merge settings, every item is merged again on its next run. A source with nothing for an item is asked again after 14 days. When a source fails, the stored segments are kept and the item is asked again on the next run.
 
 Local items are looked up when added (episodes once their series has a TVDB or TMDB id), after a metadata download and on playback, the rest on the media segment scan. For Gelato's stream rows, Gelato runs the providers before playback starts, so the first play already has its skip buttons.
 

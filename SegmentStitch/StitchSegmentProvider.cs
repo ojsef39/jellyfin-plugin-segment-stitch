@@ -107,7 +107,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
         }
 
         var config = plugin.Configuration;
-        var refreshKey = string.Create(CultureInfo.InvariantCulture, $"item:{item.Id:N}");
+        var refreshKey = string.Create(CultureInfo.InvariantCulture, $"item:{item.Id:N}:{SettingsFingerprint(config)}");
         var segmentManager = _serviceProvider.GetRequiredService<IMediaSegmentManager>();
         var served = (await segmentManager
             .GetSegmentsAsync(item, null, _libraryManager.GetLibraryOptions(item), filterByProvider: true)
@@ -184,6 +184,30 @@ public class StitchSegmentProvider : IMediaSegmentProvider
     /// <returns>Whether to keep the existing segments.</returns>
     internal static bool ShouldKeepExistingSegments(int ownCount, int servedCount, bool refreshDue)
         => servedCount > ownCount || (ownCount > 0 && !refreshDue);
+
+    /// <summary>
+    /// The plugin version and the settings a merge depends on. Part of an item's fetch record,
+    /// so after an update or a settings change every item is merged again.
+    /// </summary>
+    /// <param name="config">The configuration.</param>
+    /// <returns>A short hash.</returns>
+    internal static string SettingsFingerprint(PluginConfiguration config)
+    {
+        var settings = string.Join(
+            '|',
+            typeof(StitchSegmentProvider).Assembly.GetName().Version,
+            config.EnableTheIntroDb,
+            config.EnableIntroDb,
+            config.EnableChapters,
+            config.EnableIntro,
+            config.EnableRecap,
+            config.EnableCredits,
+            config.EnablePreview,
+            config.MergeMode,
+            string.Join(',', ParsePriority(config.SourcePriority)),
+            string.Join(',', ParsePriority(config.StreamSourcePriority)));
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(settings)))[..12];
+    }
 
     /// <summary>
     /// How long a fetch holds before the item is refreshed: 75 to 125 % of the setting, so the
