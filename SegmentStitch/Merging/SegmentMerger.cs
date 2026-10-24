@@ -43,7 +43,7 @@ public static class SegmentMerger
         }
 
         // Largest group of sources that share a time first; among groups of one size the one
-        // with the higher priority sources. One source alone does not outvote another.
+        // with the higher priority sources.
         for (var size = ordered.Count; size >= 2; size--)
         {
             foreach (var group in Combinations(ordered, size))
@@ -57,7 +57,8 @@ public static class SegmentMerger
             }
         }
 
-        return null;
+        // No two sources agree: the first by priority.
+        return (ordered[0].StartTicks, ordered[0].EndTicks);
     }
 
     /// <summary>

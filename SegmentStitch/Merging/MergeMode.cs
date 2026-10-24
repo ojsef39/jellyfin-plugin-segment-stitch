@@ -7,7 +7,8 @@ public enum MergeMode
 {
     /// <summary>
     /// The time the most sources agree on: from the latest start to the earliest end. A source
-    /// that overlaps none of the others is left out; sources that do not overlap at all give no segment.
+    /// that overlaps none of the others is left out; when no two sources overlap, the first by
+    /// priority is taken.
     /// </summary>
     Smart,
 

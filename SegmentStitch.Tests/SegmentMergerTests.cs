@@ -33,8 +33,15 @@ public class SegmentMergerTests
         => Assert.Equal((62, 88), Merge(MergeMode.Smart, Span(SegmentSource.TheIntroDb, 60, 88), Span(SegmentSource.IntroDb, 62, 95)));
 
     [Fact]
-    public void TwoDisagreeingSourcesGiveNoSegment()
-        => Assert.Null(Merge(MergeMode.Smart, Span(SegmentSource.TheIntroDb, 0, 30), Span(SegmentSource.IntroDb, 60, 90)));
+    public void TwoDisagreeingSourcesGiveTheFirstByPriority()
+    {
+        Assert.Equal((0, 30), Merge(MergeMode.Smart, Span(SegmentSource.TheIntroDb, 0, 30), Span(SegmentSource.IntroDb, 60, 90)));
+        Assert.Equal((60, 90), Merge(
+            MergeMode.Smart,
+            [SegmentSource.IntroDb, SegmentSource.TheIntroDb],
+            Span(SegmentSource.TheIntroDb, 0, 30),
+            Span(SegmentSource.IntroDb, 60, 90)));
+    }
 
     [Fact]
     public void ThreeOverlappingSourcesGiveTheirCommonOverlap()
@@ -67,8 +74,8 @@ public class SegmentMergerTests
     }
 
     [Fact]
-    public void ThreePairwiseDisagreeingSourcesGiveNoSegment()
-        => Assert.Null(Merge(
+    public void ThreePairwiseDisagreeingSourcesGiveTheFirstByPriority()
+        => Assert.Equal((0, 10), Merge(
             MergeMode.Smart,
             Span(SegmentSource.TheIntroDb, 0, 10),
             Span(SegmentSource.IntroDb, 20, 30),

@@ -8,10 +8,9 @@ overview: "Jellyfin media segments from TheIntroDB, IntroDB and chapters, merged
 description: >
   Asks TheIntroDB and IntroDB and reads the item's chapters, then merges intros, recaps, credits
   and previews per segment type, so an episode can get its intro from one source and its credits
-  from another. Where several sources have a type, only the time they agree on is kept.
+  from another. Where several sources have a type, the time they agree on is kept.
 category: "General"
 owner: "ojsef39"
 artifacts:
 - "SegmentStitch.dll"
-changelog: >
-  changelog
+changelog: ""

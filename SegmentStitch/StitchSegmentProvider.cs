@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -47,6 +48,7 @@ public class StitchSegmentProvider : IMediaSegmentProvider
     private readonly IChapterRepository _chapterRepository;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<StitchSegmentProvider> _logger;
+    private readonly ConcurrentDictionary<Guid, Lazy<Task<IReadOnlyList<MediaSegmentDto>>>> _running = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="StitchSegmentProvider"/> class.
@@ -80,11 +82,24 @@ public class StitchSegmentProvider : IMediaSegmentProvider
     public Task CleanupExtractedData(Guid itemId, CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<MediaSegmentDto>> GetMediaSegments(
+    /// <remarks>
+    /// Gelato's run before a stream's playback and the playback hook can ask for one item at
+    /// once: one lookup answers both.
+    /// </remarks>
+    public Task<IReadOnlyList<MediaSegmentDto>> GetMediaSegments(
         MediaSegmentGenerationRequest request,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        var run = _running.GetOrAdd(request.ItemId, _ => new Lazy<Task<IReadOnlyList<MediaSegmentDto>>>(() => LookupAsync(request, cancellationToken)));
+        run.Value.ContinueWith(_ => _running.TryRemove(new KeyValuePair<Guid, Lazy<Task<IReadOnlyList<MediaSegmentDto>>>>(request.ItemId, run)), TaskScheduler.Default);
+        return run.Value;
+    }
+
+    private async Task<IReadOnlyList<MediaSegmentDto>> LookupAsync(
+        MediaSegmentGenerationRequest request,
+        CancellationToken cancellationToken)
+    {
         List<MediaSegmentDto> existing = request.ExistingSegments?.ToList() ?? [];
         if (Plugin.Instance is not { } plugin || _libraryManager.GetItemById(request.ItemId) is not { } item)
         {

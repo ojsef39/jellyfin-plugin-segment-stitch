@@ -66,8 +66,8 @@ public class PluginConfiguration : BasePluginConfiguration
     public int RefreshAfterDays { get; set; } = 30;
 
     /// <summary>
-    /// Gets or sets a value indicating whether new items, and items after a metadata download,
-    /// are looked up right away instead of on the next media segment scan.
+    /// Gets or sets a value indicating whether items are looked up when added, after a metadata
+    /// download and on playback, instead of on the next media segment scan.
     /// </summary>
     public bool EnableOnDemandFetch { get; set; } = true;
 }

@@ -38,7 +38,7 @@
                             <option value="Smart">Smart: the time the sources agree on</option>
                             <option value="Priority">Priority: the first source that has the type</option>
                         </select>
-                        <div class="fieldDescription">Smart keeps the overlap (latest start to earliest end) of the most sources that overlap, leaves out a source that overlaps none of the others, and gives no segment when two sources disagree completely. It errs on skipping too little.</div>
+                        <div class="fieldDescription">Smart keeps the overlap (latest start to earliest end) of the most sources that overlap and leaves out a source that overlaps none of the others. When no two sources overlap, the first by priority wins.</div>
                     </div>
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="SourcePriority">Source priority</label>
@@ -52,8 +52,8 @@
                         <input id="RefreshAfterDays" type="number" min="0" is="emby-input" />
                         <div class="fieldDescription">An item's segments are fetched again after this many days (give or take a quarter), so corrections arrive. 0 never refreshes. A source with nothing for an item is asked again after 14 days.</div>
                     </div>
-                    <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="EnableOnDemandFetch" /><span>Look up new items right away</span></label>
-                    <div class="fieldDescription">Otherwise new items get their segments on the next media segment scan.</div>
+                    <label class="checkboxContainer"><input is="emby-checkbox" type="checkbox" id="EnableOnDemandFetch" /><span>Look up items when added and on playback</span></label>
+                    <div class="fieldDescription">Otherwise items get their segments on the next media segment scan. Gelato looks its stream rows up before playback either way.</div>
 
                     <div>
                         <button is="emby-button" type="submit" class="raised button-submit block emby-button"><span>Save</span></button>

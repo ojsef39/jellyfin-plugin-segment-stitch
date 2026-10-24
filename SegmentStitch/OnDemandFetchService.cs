@@ -9,6 +9,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.MediaSegments;
+using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,14 +17,15 @@ using Microsoft.Extensions.Logging;
 namespace SegmentStitch;
 
 /// <summary>
-/// Looks new items up right away instead of on the next media segment scan, and writes the
-/// caches on shutdown. Playback is left out: Gelato already runs the providers for its stream
-/// rows on playback.
+/// Looks items up when they are added, after a metadata download and on playback, instead of on
+/// the next media segment scan, and writes the caches on shutdown. Gelato runs the providers for
+/// a stream row before its playback already; the playback hook refreshes local files that are due.
 /// </summary>
 internal sealed class OnDemandFetchService : IHostedService, IDisposable
 {
     private readonly IMediaSegmentManager _mediaSegmentManager;
     private readonly ILibraryManager _libraryManager;
+    private readonly ISessionManager _sessionManager;
     private readonly ILogger<OnDemandFetchService> _logger;
     private readonly CancellationTokenSource _cts = new();
     private readonly ConcurrentDictionary<int, Task> _pending = new();
@@ -31,10 +33,12 @@ internal sealed class OnDemandFetchService : IHostedService, IDisposable
     public OnDemandFetchService(
         IMediaSegmentManager mediaSegmentManager,
         ILibraryManager libraryManager,
+        ISessionManager sessionManager,
         ILogger<OnDemandFetchService> logger)
     {
         _mediaSegmentManager = mediaSegmentManager;
         _libraryManager = libraryManager;
+        _sessionManager = sessionManager;
         _logger = logger;
     }
 
@@ -42,6 +46,7 @@ internal sealed class OnDemandFetchService : IHostedService, IDisposable
     {
         _libraryManager.ItemAdded += OnItemAdded;
         _libraryManager.ItemUpdated += OnItemUpdated;
+        _sessionManager.PlaybackStart += OnPlaybackStart;
         return Task.CompletedTask;
     }
 
@@ -49,6 +54,7 @@ internal sealed class OnDemandFetchService : IHostedService, IDisposable
     {
         _libraryManager.ItemAdded -= OnItemAdded;
         _libraryManager.ItemUpdated -= OnItemUpdated;
+        _sessionManager.PlaybackStart -= OnPlaybackStart;
         await _cts.CancelAsync().ConfigureAwait(false);
         try
         {
@@ -107,6 +113,14 @@ internal sealed class OnDemandFetchService : IHostedService, IDisposable
         if (ShouldFetchOnItemUpdated(e))
         {
             Track(FetchAsync(e.Item, "metadata download"));
+        }
+    }
+
+    private void OnPlaybackStart(object? sender, PlaybackProgressEventArgs e)
+    {
+        if (e?.Item is Episode or Movie or Video)
+        {
+            Track(FetchAsync(e.Item, "playback"));
         }
     }
 
