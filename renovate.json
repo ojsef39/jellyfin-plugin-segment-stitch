@@ -9,6 +9,31 @@
             "automerge": true,
             "automergeType": "pr",
             "schedule": ["on friday"]
+        },
+        {
+            "description": "Test-only packages",
+            "matchFileNames": ["SegmentStitch.Tests/**"],
+            "matchPackageNames": ["!Jellyfin.Controller", "!Jellyfin.Model", "!Jellyfin.Database.Implementations"],
+            "groupName": "test dependencies",
+            "automerge": true
+        },
+        {
+            "description": "GitHub Actions; python only runs jprm in the release workflow, which PRs do not run: check release.sh before merging",
+            "matchManagers": ["github-actions"],
+            "matchDepNames": ["!python"],
+            "matchUpdateTypes": ["minor", "patch", "digest"],
+            "groupName": "github actions",
+            "automerge": true
+        },
+        {
+            "description": "Jellyfin packages are the minimum server version (targetAbi in build.yaml): no minor updates, a major together with targetAbi",
+            "matchPackageNames": ["Jellyfin.Controller", "Jellyfin.Model", "Jellyfin.Database.Implementations"],
+            "groupName": "jellyfin"
+        },
+        {
+            "matchPackageNames": ["Jellyfin.Controller", "Jellyfin.Model", "Jellyfin.Database.Implementations"],
+            "matchUpdateTypes": ["minor"],
+            "enabled": false
         }
     ]
 }
